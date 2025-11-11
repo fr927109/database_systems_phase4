@@ -1,0 +1,336 @@
+// ============================================================================
+// API SERVICE MODULE
+// Purpose: Centralized API client for communicating with backend
+// Usage: Import and use functions to fetch/post data from database
+// ============================================================================
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// ============================================================================
+// ERROR HANDLING
+// ============================================================================
+
+async function handleResponse(response) {
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || `HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+// ============================================================================
+// HEALTH CHECK
+// ============================================================================
+
+export async function checkAPIHealth() {
+  try {
+    const response = await fetch(`${API_URL}/health`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Health check failed:', error);
+    return { status: 'error', message: error.message };
+  }
+}
+
+// ============================================================================
+// ARTISTS
+// ============================================================================
+
+/**
+ * Fetch all artists from database
+ * @returns {Promise<Array>} Array of artist objects
+ */
+export async function fetchArtists() {
+  try {
+    const response = await fetch(`${API_URL}/artists`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Error fetching artists:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch single artist by ID
+ * @param {number} artistId - ID of artist to fetch
+ * @returns {Promise<Object>} Artist object
+ */
+export async function fetchArtist(artistId) {
+  try {
+    const response = await fetch(`${API_URL}/artists/${artistId}`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error(`Error fetching artist ${artistId}:`, error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// SONGS
+// ============================================================================
+
+/**
+ * Fetch all songs from database
+ * @returns {Promise<Array>} Array of song objects with artist info
+ */
+export async function fetchSongs() {
+  try {
+    const response = await fetch(`${API_URL}/songs`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Error fetching songs:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch single song by ID
+ * @param {number} songId - ID of song to fetch
+ * @returns {Promise<Object>} Song object with artist info
+ */
+export async function fetchSong(songId) {
+  try {
+    const response = await fetch(`${API_URL}/songs/${songId}`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error(`Error fetching song ${songId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch all songs by a specific artist
+ * @param {number} artistId - ID of artist
+ * @returns {Promise<Array>} Array of song objects
+ */
+export async function fetchSongsByArtist(artistId) {
+  try {
+    const response = await fetch(`${API_URL}/songs/by-artist/${artistId}`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error(`Error fetching songs by artist ${artistId}:`, error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// USERS
+// ============================================================================
+
+/**
+ * Fetch user profile (without password)
+ * @param {number} userId - ID of user to fetch
+ * @returns {Promise<Object>} User object
+ */
+export async function fetchUser(userId) {
+  try {
+    const response = await fetch(`${API_URL}/users/${userId}`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error(`Error fetching user ${userId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Login user
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise<Object>} User object and success status
+ */
+export async function loginUser(email, password) {
+  try {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Error during login:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// PLAYLISTS
+// ============================================================================
+
+/**
+ * Fetch all playlists for a user
+ * @param {number} userId - ID of user
+ * @returns {Promise<Array>} Array of playlist objects with song count
+ */
+export async function fetchUserPlaylists(userId) {
+  try {
+    const response = await fetch(`${API_URL}/playlists/${userId}`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error(`Error fetching playlists for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch all songs in a specific playlist
+ * @param {number} playlistId - ID of playlist
+ * @returns {Promise<Array>} Array of songs in playlist with artist info
+ */
+export async function fetchPlaylistSongs(playlistId) {
+  try {
+    const response = await fetch(`${API_URL}/playlists/${playlistId}/songs`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error(`Error fetching songs for playlist ${playlistId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Create new playlist
+ * @param {number} userId - User ID
+ * @param {string} name - Playlist name
+ * @param {string} description - Playlist description (optional)
+ * @param {string} colorHex - Hex color code (optional, defaults to #a855f7)
+ * @returns {Promise<Object>} Response with new playlist_id
+ */
+export async function createPlaylist(userId, name, description = '', colorHex = '#a855f7') {
+  try {
+    const response = await fetch(`${API_URL}/playlists`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        name,
+        description,
+        color_hex: colorHex
+      })
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Error creating playlist:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add song to playlist
+ * @param {number} playlistId - ID of playlist
+ * @param {number} songId - ID of song to add
+ * @param {number} trackOrder - Position in playlist (optional)
+ * @returns {Promise<Object>} Response indicating success
+ */
+export async function addSongToPlaylist(playlistId, songId, trackOrder = 999) {
+  try {
+    const response = await fetch(`${API_URL}/playlists/${playlistId}/songs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        song_id: songId,
+        track_order: trackOrder
+      })
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Error adding song to playlist:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// SEARCH
+// ============================================================================
+
+/**
+ * Search for songs and artists
+ * @param {string} query - Search query string
+ * @returns {Promise<Object>} Object with songs and artists arrays
+ */
+export async function searchMusic(query) {
+  try {
+    if (!query || query.trim().length === 0) {
+      return { songs: [], artists: [] };
+    }
+    
+    const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Error during search:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// BATCH OPERATIONS (Helper Functions)
+// ============================================================================
+
+/**
+ * Load all data needed for initial app load
+ * @param {number} userId - Current user ID
+ * @returns {Promise<Object>} Object containing songs, artists, playlists
+ */
+export async function loadAppData(userId) {
+  try {
+    const [songs, artists, playlists] = await Promise.all([
+      fetchSongs(),
+      fetchArtists(),
+      fetchUserPlaylists(userId)
+    ]);
+    
+    return { songs, artists, playlists };
+  } catch (error) {
+    console.error('Error loading app data:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create playlist with songs
+ * @param {number} userId - User ID
+ * @param {string} name - Playlist name
+ * @param {Array<number>} songIds - Array of song IDs to add
+ * @param {string} colorHex - Hex color code
+ * @returns {Promise<Object>} Created playlist info
+ */
+export async function createPlaylistWithSongs(userId, name, songIds, colorHex) {
+  try {
+    // Create playlist
+    const playlistResponse = await createPlaylist(userId, name, '', colorHex);
+    const playlistId = playlistResponse.playlist_id;
+    
+    // Add songs to playlist
+    for (let i = 0; i < songIds.length; i++) {
+      await addSongToPlaylist(playlistId, songIds[i], i + 1);
+    }
+    
+    return playlistResponse;
+  } catch (error) {
+    console.error('Error creating playlist with songs:', error);
+    throw error;
+  }
+}
+
+export default {
+  // Health
+  checkAPIHealth,
+  // Artists
+  fetchArtists,
+  fetchArtist,
+  // Songs
+  fetchSongs,
+  fetchSong,
+  fetchSongsByArtist,
+  // Users
+  fetchUser,
+  loginUser,
+  // Playlists
+  fetchUserPlaylists,
+  fetchPlaylistSongs,
+  createPlaylist,
+  addSongToPlaylist,
+  // Search
+  searchMusic,
+  // Batch
+  loadAppData,
+  createPlaylistWithSongs
+};

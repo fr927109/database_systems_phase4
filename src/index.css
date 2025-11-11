@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Small set of base overrides to make the demo closer to the provided screenshots */
+:root{
+  color-scheme: light;
+}
+
+html,body,#root{
+  height:100%;
+}
+
+body{
+  @apply bg-[#F8F7F3] text-[#24354A] font-sans antialiased;
+}
+
+/* basic card look used widely in the mock */
+.card-base{
+  @apply bg-white border border-[#E6E2D9] rounded-2xl shadow-sm p-4;
+}
+
+/* small helpers for buttons used in stubs */
+.btn{
+  @apply inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white border border-slate-300;
+}
+.btn-primary{
+  @apply bg-[#111827] text-white px-4 py-2 rounded-md;
+}
+
+/* container max width similar to mock */
+.container{
+  max-width:1100px;
+  margin:0 auto;
+}
+
+/* simple responsive grid for layout */
+.grid-cols-12{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:1rem}
+.col-span-3{grid-column:span 3/span 3}
+.col-span-9{grid-column:span 9/span 9}
+
+/* a few utility tweaks for inputs */
+input[type="text"], input[type="email"], input[type="password"], textarea{
+  @apply border border-slate-300 rounded-md px-3 py-2 bg-white;
+}
+
+/* make lucide icons inherit size */
+svg{vertical-align:middle}
