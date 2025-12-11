@@ -152,6 +152,126 @@ export async function loginUser(email, password) {
   }
 }
 
+/**
+ * Sign up new user
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @param {string} username - Username (optional)
+ * @returns {Promise<Object>} User object and success status
+ */
+export async function signupUser(email, password, username = '') {
+  try {
+    const response = await fetch(`${API_URL}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, username })
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Error during signup:', error);
+    throw error;
+  }
+}
+
+/**
+ * Search users by username or email
+ * @param {string} query - Search query string
+ * @returns {Promise<Object>} Object with users array
+ */
+export async function searchUsers(query) {
+  try {
+    if (!query || query.trim().length === 0) {
+      return { users: [] };
+    }
+    
+    const response = await fetch(`${API_URL}/users/search?q=${encodeURIComponent(query)}`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Error during user search:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get public profile of a user
+ * @param {number} userId - ID of user
+ * @returns {Promise<Object>} User profile object
+ */
+export async function fetchUserProfile(userId) {
+  try {
+    // Use the simpler /users/{id} endpoint which should already exist
+    const response = await fetch(`${API_URL}/users/${userId}`);
+    const data = await handleResponse(response);
+    
+    // Remove email from public profile view
+    const { email, password, ...publicProfile } = data;
+    
+    // Wrap in a 'user' property to maintain consistent API structure
+    return { user: publicProfile };
+  } catch (error) {
+    console.error(`Error fetching profile for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get public playlists of a user
+ * @param {number} userId - ID of user
+ * @returns {Promise<Array>} Array of playlist objects
+ */
+export async function fetchUserPublicPlaylists(userId) {
+  try {
+    // Use the regular playlists endpoint - it should work for viewing other users' playlists
+    const response = await fetch(`${API_URL}/playlists/${userId}`);
+    const playlists = await handleResponse(response);
+    
+    // Transform to match expected structure
+    return {
+      playlists: playlists.map(playlist => ({
+        id: playlist.playlist_id || playlist.id,
+        name: playlist.name,
+        count: playlist.song_count || playlist.count || 0,
+        color: playlist.color_hex || playlist.color || '#a855f7',
+        image: playlist.image || null,
+        description: playlist.description || ''
+      }))
+    };
+  } catch (error) {
+    console.error(`Error fetching public playlists for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get public playlists of a user with their songs
+ * @param {number} userId - ID of user
+ * @returns {Promise<Array>} Array of playlist objects with songs
+ */
+export async function fetchUserPublicPlaylistsWithSongs(userId) {
+  try {
+    const playlistsData = await fetchUserPublicPlaylists(userId);
+    const playlists = playlistsData.playlists;
+    
+    // Fetch songs for each playlist
+    const playlistsWithSongs = await Promise.all(
+      playlists.map(async (playlist) => {
+        try {
+          const songs = await fetchPlaylistSongs(playlist.id);
+          return { ...playlist, songs };
+        } catch (error) {
+          console.error(`Error fetching songs for playlist ${playlist.id}:`, error);
+          return { ...playlist, songs: [] };
+        }
+      })
+    );
+    
+    return { playlists: playlistsWithSongs };
+  } catch (error) {
+    console.error(`Error fetching public playlists with songs for user ${userId}:`, error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // PLAYLISTS
 // ============================================================================
@@ -164,7 +284,17 @@ export async function loginUser(email, password) {
 export async function fetchUserPlaylists(userId) {
   try {
     const response = await fetch(`${API_URL}/playlists/${userId}`);
-    return handleResponse(response);
+    const playlists = await handleResponse(response);
+    
+    // Transform backend data to match frontend expectations
+    return playlists.map(playlist => ({
+      id: playlist.playlist_id || playlist.id,
+      name: playlist.name,
+      count: playlist.song_count || playlist.count || 0,
+      color: playlist.color_hex || playlist.color || '#a855f7',
+      image: playlist.image || null,
+      description: playlist.description || ''
+    }));
   } catch (error) {
     console.error(`Error fetching playlists for user ${userId}:`, error);
     throw error;
@@ -237,6 +367,23 @@ export async function addSongToPlaylist(playlistId, songId, trackOrder = 999) {
   }
 }
 
+/**
+ * Delete a playlist
+ * @param {number} playlistId - ID of playlist to delete
+ * @returns {Promise<Object>} Response indicating success
+ */
+export async function deletePlaylist(playlistId) {
+  try {
+    const response = await fetch(`${API_URL}/playlists/${playlistId}`, {
+      method: 'DELETE'
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Error deleting playlist:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // SEARCH
 // ============================================================================
@@ -261,6 +408,24 @@ export async function searchMusic(query) {
 }
 
 // ============================================================================
+// BILLBOARD
+// ============================================================================
+
+/**
+ * Fetch Billboard Hot 100 top 10 songs
+ * @returns {Promise<Array>} Array of top 10 song objects
+ */
+export async function fetchBillboardTop10() {
+  try {
+    const response = await fetch(`${API_URL}/billboard/top10`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Error fetching Billboard Top 10:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
 // BATCH OPERATIONS (Helper Functions)
 // ============================================================================
 
@@ -271,11 +436,16 @@ export async function searchMusic(query) {
  */
 export async function loadAppData(userId) {
   try {
+    console.log('🔍 API: Loading app data for user', userId);
+    
     const [songs, artists, playlists] = await Promise.all([
       fetchSongs(),
       fetchArtists(),
       fetchUserPlaylists(userId)
     ]);
+    
+    console.log('📦 API: Loaded', songs.length, 'songs,', artists.length, 'artists,', playlists.length, 'playlists');
+    console.log('📋 API: Playlists:', playlists);
     
     return { songs, artists, playlists };
   } catch (error) {
@@ -310,6 +480,27 @@ export async function createPlaylistWithSongs(userId, name, songIds, colorHex) {
   }
 }
 
+/**
+ * Update user profile
+ * @param {number} userId - ID of user to update
+ * @param {Object} profileData - Object containing profile fields to update
+ * @returns {Promise<Object>} Updated user object
+ */
+export async function updateUserProfile(userId, profileData) {
+  const response = await fetch(`${API_URL}/users/${userId}/profile`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profileData)
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update profile');
+  }
+  
+  return response.json();
+}
+
 export default {
   // Health
   checkAPIHealth,
@@ -323,14 +514,24 @@ export default {
   // Users
   fetchUser,
   loginUser,
+  signupUser,
+  searchUsers,
+  fetchUserProfile,
+  fetchUserPublicPlaylists,
+  fetchUserPublicPlaylistsWithSongs,
   // Playlists
   fetchUserPlaylists,
   fetchPlaylistSongs,
   createPlaylist,
   addSongToPlaylist,
+  deletePlaylist,
   // Search
   searchMusic,
+  // Billboard
+  fetchBillboardTop10,
   // Batch
   loadAppData,
-  createPlaylistWithSongs
+  createPlaylistWithSongs,
+  // Update
+  updateUserProfile
 };

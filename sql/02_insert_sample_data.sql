@@ -7,18 +7,6 @@
 USE music_player_db;
 
 -- ============================================================================
--- INSERT SAMPLE USERS (Functional Dependency: user_id → email, username, password_hash)
--- ============================================================================
-INSERT INTO Users (email, username, password_hash) VALUES
-('fr927@email.com', 'frankie', '$2b$10$YourHashedPasswordHere1'),
-('alex.music@email.com', 'alexmusic', '$2b$10$YourHashedPasswordHere2'),
-('jordan.listener@email.com', 'jlisten', '$2b$10$YourHashedPasswordHere3'),
-('taylor.songs@email.com', 'taylorsongs', '$2b$10$YourHashedPasswordHere4'),
-('casey.beats@email.com', 'caseybeats', '$2b$10$YourHashedPasswordHere5'),
-('morgan.audio@email.com', 'morganaud', '$2b$10$YourHashedPasswordHere6'),
-('raven.music@email.com', 'ravenmusic', '$2b$10$YourHashedPasswordHere7');
-
--- ============================================================================
 -- INSERT SAMPLE ARTISTS (Functional Dependency: artist_id → name, bio)
 -- ============================================================================
 INSERT INTO Artists (name, bio) VALUES
@@ -29,7 +17,21 @@ INSERT INTO Artists (name, bio) VALUES
 ('North & Pine', 'A lo-fi hip-hop collective creating sample-based beats for studying, relaxing, and creative work.'),
 ('Luna Waves', 'Luna Waves produces synth-wave and synthpop music with 80s and 90s influences.'),
 ('Echo Chamber', 'A post-rock experimental group exploring complex rhythms and layered instrumental arrangements.'),
-('Neon Nights', 'A synthwave musician creating retro-futuristic electronic music with nostalgic 80s aesthetics.');
+('Neon Nights', 'A synthwave musician creating retro-futuristic electronic music with nostalgic 80s aesthetics.'),
+('The Cosmic Few', 'An indie rock band blending space rock with psychedelic elements.'),
+('Ember Falls', 'A folk-pop duo known for heartfelt acoustic melodies and harmonies.'),
+('Digital Horizons', 'Electronic producer specializing in future bass and melodic dubstep.'),
+('Velvet Storm', 'Alternative metal band with progressive and experimental influences.'),
+('Mariah Carey', 'An American singer, songwriter, actress, and record producer, known for her five-octave vocal range and melismatic singing style.'),
+('Wham!', 'A British pop duo formed in the early 1980s, known for their catchy tunes and energetic performances.'),
+('Brenda Lee', 'An American singer known for her powerful voice and rockabilly hits.'),
+('Bobby Helms', 'An American country music singer best known for his 1957 Christmas hit "Jingle Bell Rock".'),
+('HUNTR/X: EJAE, Audrey Nuna & REI AMI', 'A collaborative project blending R&B, pop, and electronic music styles.'),
+('Taylor Swift', 'An American singer-songwriter known for narrative songs about her personal life, which have received widespread media coverage and critical praise.'),
+('Alex Warren', 'An indie artist known for his introspective lyrics and melodic compositions.'),
+('Ariana Grande', 'An American singer and actress known for her wide vocal range and pop hits.'),
+('Nat King Cole', 'An American jazz pianist and vocalist, renowned for his smooth voice and timeless classics.'),
+('Andy Williams', 'An American singer known for his easy listening and traditional pop music.');
 
 -- ============================================================================
 -- INSERT SAMPLE SONGS 
@@ -51,7 +53,19 @@ INSERT INTO Songs (artist_id, title, duration, genre, release_year) VALUES
 (8, 'Synthwave Horizon', 210, 'Synthwave', 2023),
 (4, 'Autumn Whispers', 198, 'Indie Folk', 2023),
 (6, 'Retro Future', 225, 'Synthwave', 2022),
-(1, 'Aurora', 192, 'Synth-pop', 2023);
+(1, 'Aurora', 192, 'Synth-pop', 2023),
+(3, 'Zen Garden', 154, 'Ambient', 2023),
+(5, 'Coffee Shop Blues', 172, 'Lo-fi Hip-hop', 2023),
+(9, 'All I Want For Christmas Is You', 240, 'Pop', 1994),          -- Mariah Carey
+(10, 'Last Christmas', 210, 'Pop', 1984),                          -- Wham!
+(11, 'Rockin Around The Christmas Tree', 120, 'Rockabilly', 1958), -- Brenda Lee
+(12, 'Jingle Bell Rock', 150, 'Rock and Roll', 1957),              -- Bobby Helms
+(13, 'Golden', 200, 'Pop', 2020),                                  -- HUNTR/X
+(14, 'Fate of Ophelia', 230, 'Folk', 2025),                        -- Taylor Swift
+(15, 'Ordinary', 220, 'R&B', 2024),                                -- Alex Warren
+(16, 'Santa Tell Me', 180, 'Pop', 2014),                           -- Ariana Grande
+(17, 'The Christmas Song', 170, 'Jazz', 1946),                     -- Nat King Cole
+(18, 'It''s the Most Wonderful Time of the Year', 160, 'Traditional Pop', 1963); -- Andy Williams
 
 -- ============================================================================
 -- INSERT SAMPLE PLAYLISTS
@@ -62,13 +76,8 @@ INSERT INTO Playlists (user_id, name, description, color_hex) VALUES
 (1, 'Daily Mix', 'My favorite tracks for daily listening', '#a855f7'),
 (1, 'Focus Flow', 'Ambient music for concentration and work', '#10b981'),
 (1, 'Roadtrip 25', 'High-energy tracks for road trips', '#f59e0b'),
-(2, 'Chill Vibes', 'Relaxing tracks for unwinding', '#3b82f6'),
-(2, 'Workout Beats', 'Energetic tracks for exercise', '#f43f5e'),
-(3, 'Studying Essentials', 'Lo-fi and ambient for study sessions', '#8b5cf6'),
-(3, 'Rock Anthems', 'Classic and modern rock tracks', '#ec4899'),
-(4, 'Evening Ambiance', 'Soft instrumental for evening relaxation', '#06b6d4'),
-(4, 'Night Driving', 'Synthwave for late-night drives', '#14b8a6'),
-(5, 'Indie Favorites', 'Curated indie and alternative tracks', '#f97316');
+(1, 'Workout Energy', 'High-tempo tracks for exercise', '#ef4444'),
+(1, 'Chill Vibes', 'Relaxing music for unwinding', '#3b82f6');
 
 -- ============================================================================
 -- INSERT SAMPLE PLAYLIST_SONGS (Junction Table)
@@ -91,7 +100,8 @@ INSERT INTO Playlist_Songs (playlist_id, song_id, track_order) VALUES
 (2, 8, 2),  -- Whispered Echoes
 (2, 11, 3), -- Vinyl Memories
 (2, 13, 4), -- Autumn Whispers
-(2, 5, 5);  -- Paper Kites
+(2, 5, 5),  -- Paper Kites
+(2, 24, 6); -- Zen Garden
 
 -- Playlist 3: Roadtrip 25 (user_id=1)
 INSERT INTO Playlist_Songs (playlist_id, song_id, track_order) VALUES
@@ -100,103 +110,42 @@ INSERT INTO Playlist_Songs (playlist_id, song_id, track_order) VALUES
 (3, 4, 3),  -- Orbiting
 (3, 6, 4),  -- Electric Dreams
 (3, 12, 5), -- Synthwave Horizon
-(3, 9, 6);  -- Crystalline Structures
+(3, 9, 6),  -- Crystalline Structures
+(3, 16, 7); -- Starlight Odyssey
 
--- Playlist 4: Chill Vibes (user_id=2)
+-- Playlist 4: Workout Energy (user_id=1)
 INSERT INTO Playlist_Songs (playlist_id, song_id, track_order) VALUES
-(4, 3, 1),  -- Glass River
-(4, 8, 2),  -- Whispered Echoes
-(4, 7, 3),  -- Luminescence
-(4, 13, 4), -- Autumn Whispers
-(4, 5, 5);  -- Paper Kites
+(4, 2, 1),   -- Midnight Engine
+(4, 10, 2),  -- Echoing Thunder
+(4, 19, 3),  -- Iron Sky
+(4, 18, 4),  -- Neon Paradise
+(4, 22, 5);  -- Digital Rain
 
--- Playlist 5: Workout Beats (user_id=2)
+-- Playlist 5: Chill Vibes (user_id=1)
 INSERT INTO Playlist_Songs (playlist_id, song_id, track_order) VALUES
-(5, 2, 1),  -- Midnight Engine
-(5, 10, 2), -- Echoing Thunder
-(5, 1, 3),  -- Neon Nights
-(5, 4, 4),  -- Orbiting
-(5, 6, 5);  -- Electric Dreams
-
--- Playlist 6: Studying Essentials (user_id=3)
-INSERT INTO Playlist_Songs (playlist_id, song_id, track_order) VALUES
-(6, 5, 1),  -- Paper Kites
-(6, 11, 2), -- Vinyl Memories
-(6, 3, 3),  -- Glass River
-(6, 8, 4),  -- Whispered Echoes
-(6, 13, 5); -- Autumn Whispers
-
--- Playlist 7: Rock Anthems (user_id=3)
-INSERT INTO Playlist_Songs (playlist_id, song_id, track_order) VALUES
-(7, 2, 1),  -- Midnight Engine
-(7, 10, 2), -- Echoing Thunder
-(7, 9, 3),  -- Crystalline Structures
-(7, 4, 4),  -- Orbiting
-(7, 1, 5);  -- Neon Nights
-
--- Playlist 8: Evening Ambiance (user_id=4)
-INSERT INTO Playlist_Songs (playlist_id, song_id, track_order) VALUES
-(8, 3, 1),  -- Glass River
-(8, 8, 2),  -- Whispered Echoes
-(8, 7, 3),  -- Luminescence
-(8, 13, 4), -- Autumn Whispers
-(8, 15, 5); -- Aurora
-
--- Playlist 9: Night Driving (user_id=4)
-INSERT INTO Playlist_Songs (playlist_id, song_id, track_order) VALUES
-(9, 12, 1), -- Synthwave Horizon
-(9, 14, 2), -- Retro Future
-(9, 7, 3),  -- Luminescence
-(9, 1, 4),  -- Neon Nights
-(9, 6, 5);  -- Electric Dreams
-
--- Playlist 10: Indie Favorites (user_id=5)
-INSERT INTO Playlist_Songs (playlist_id, song_id, track_order) VALUES
-(10, 4, 1),  -- Orbiting
-(10, 13, 2), -- Autumn Whispers
-(10, 9, 3),  -- Crystalline Structures
-(10, 5, 4),  -- Paper Kites
-(10, 11, 5); -- Vinyl Memories
+(5, 3, 1),   -- Glass River
+(5, 5, 2),   -- Paper Kites
+(5, 11, 3),  -- Vinyl Memories
+(5, 17, 4),  -- Mountain Echo
+(5, 21, 5),  -- Golden Hour
+(5, 25, 6);  -- Coffee Shop Blues
 
 -- ============================================================================
--- VERIFICATION QUERIES (Run these to verify data insertion)
+-- INSERT BILLBOARD TOP 10 CHART DATA
+-- (Functional Dependency: chart_entry_id → song_id, rank, last_week, weeks_on_chart, chart_date)
+-- Purpose: Stores current Billboard Hot 100 Top 10 chart positions
+-- Note: Unique constraint on (song_id, chart_date) prevents duplicate entries
 -- ============================================================================
-/*
--- Count rows in each table
-SELECT 'Users' AS table_name, COUNT(*) AS row_count FROM Users
-UNION ALL
-SELECT 'Artists', COUNT(*) FROM Artists
-UNION ALL
-SELECT 'Songs', COUNT(*) FROM Songs
-UNION ALL
-SELECT 'Playlists', COUNT(*) FROM Playlists
-UNION ALL
-SELECT 'Playlist_Songs', COUNT(*) FROM Playlist_Songs;
+INSERT INTO Billboard_Top_Songs (song_id, `rank`, last_week, weeks_on_chart, chart_date) VALUES
+(36, 1, 2, 8, CURDATE()),      -- All I Want For Christmas Is You (Mariah Carey) - Moved up from #2
+(37, 2, 1, 12, CURDATE()),     -- Last Christmas (Wham!) - Dropped from #1
+(38, 3, 4, 6, CURDATE()),      -- Rockin Around The Christmas Tree (Brenda Lee) - Moved up from #4
+(39, 4, 3, 10, CURDATE()),     -- Jingle Bell Rock (Bobby Helms) - Dropped from #3
+(40, 5, 7, 4, CURDATE()),      -- Golden (HUNTR/X) - Moved up from #7
+(41, 6, 5, 9, CURDATE()),      -- Fate of Ophelia (Taylor Swift) - Dropped from #5
+(42, 7, 6, 11, CURDATE()),     -- Ordinary (Alex Warren) - Dropped from #6
+(43, 8, 9, 7, CURDATE()),      -- Santa Tell Me (Ariana Grande) - Moved up from #9
+(44, 9, 8, 5, CURDATE()),      -- The Christmas Song (Nat King Cole) - Dropped from #8
+(45, 10, NULL, 1, CURDATE());  -- It's the Most Wonderful Time of the Year (Andy Williams) - New entry!
 
--- Show user with their playlists
-SELECT 
-    u.username, 
-    p.name AS playlist_name,
-    COUNT(ps.song_id) AS song_count
-FROM Users u
-LEFT JOIN Playlists p ON u.user_id = p.user_id
-LEFT JOIN Playlist_Songs ps ON p.playlist_id = ps.playlist_id
-GROUP BY u.user_id, p.playlist_id
-ORDER BY u.username, p.name;
-
--- Show all songs in a specific playlist (with artist names)
-SELECT 
-    p.name AS playlist_name,
-    ps.track_order,
-    s.title AS song_title,
-    a.name AS artist_name,
-    s.duration,
-    s.genre
-FROM Playlists p
-JOIN Playlist_Songs ps ON p.playlist_id = ps.playlist_id
-JOIN Songs s ON ps.song_id = s.song_id
-JOIN Artists a ON s.artist_id = a.artist_id
-WHERE p.playlist_id = 1
-ORDER BY ps.track_order;
-*/
 

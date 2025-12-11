@@ -688,3 +688,33 @@ textarea:focus {
   justify-content: flex-end;
 }
 
+/* Playlist Styles */
+.playlist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 16px;
+}
+
+.playlist-duration {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f0f0f0;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.duration-label {
+  color: #666;
+  font-weight: 500;
+}
+
+.duration-time {
+  color: #333;
+  font-weight: 700;
+}
+

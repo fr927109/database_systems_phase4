@@ -1,13 +1,10 @@
 -- ============================================================================
--- MUSIC PLAYER DATABASE - TABLE CREATION SCRIPT
+-- MUSIC PLAYER DATABASE - TABLE CREATION 
 -- Database: music_player_db
 -- Purpose: Create normalized tables for music player application
 -- ============================================================================
 
--- Drop existing database if it exists (for testing purposes)
 DROP DATABASE IF EXISTS music_player_db;
-
--- Create database
 CREATE DATABASE music_player_db;
 USE music_player_db;
 
@@ -119,45 +116,30 @@ CREATE TABLE Playlist_Songs (
 COMMENT='Junction table for many-to-many relationship between Playlists and Songs';
 
 -- ============================================================================
--- SUMMARY OF NORMALIZATION
+-- TABLE 6: BILLBOARD_TOP_SONGS
+-- Description: Stores Billboard Hot 100 Top 10 chart data
+-- Primary Key: chart_entry_id
+-- Foreign Key: song_id references Songs(song_id)
+-- Normalization: 3NF - Chart position data stored here; song info stored in Songs table
+-- Functional Dependency: chart_entry_id → (song_id, rank, last_week, weeks_on_chart, chart_date)
+-- Note: Unique constraint on (song_id, chart_date) to prevent duplicate entries per chart period
 -- ============================================================================
-/*
-✓ 1NF (First Normal Form):
-  - All values are atomic (no repeating groups)
-  - No composite attributes
-  - Each cell contains a single, indivisible value
-  
-✓ 2NF (Second Normal Form):
-  - Satisfies 1NF
-  - No partial dependencies on composite keys
-  - In Playlist_Songs: (playlist_id, song_id) → all non-key attributes
-  
-✓ 3NF (Third Normal Form):
-  - Satisfies 2NF
-  - No transitive dependencies
-  - Artists separated from Songs (song_id → artist_id → artist_name prevented)
-  - Users separated from Playlists (playlist_id → user_id → user_info prevented)
-  - Playlist info not duplicated in Playlist_Songs
-
-✓ BCNF (Boyce-Codd Normal Form):
-  - Every determinant is a superkey
-  - No anomalies from functional dependencies
-*/
-
--- ============================================================================
--- INDEXES FOR PERFORMANCE
--- ============================================================================
-/*
-Created indexes on:
-1. Users.email - Used for login queries
-2. Users.username - Used for profile lookups
-3. Artists.name - Used for artist searches
-4. Songs.title - Used for song search
-5. Songs.artist_id - Used for JOIN with Artists
-6. Songs.genre - Used for filtering by genre
-7. Playlists.user_id - Used for user's playlists query
-8. Playlists.name - Used for playlist name search
-9. Playlist_Songs.song_id - Used for finding playlists containing a song
-10. Playlist_Songs.(playlist_id, track_order) - Used for ordered playlist retrieval
-*/
-
+CREATE TABLE Billboard_Top_Songs (
+    chart_entry_id INT AUTO_INCREMENT PRIMARY KEY,
+    song_id INT NOT NULL COMMENT 'Foreign key to Songs table',
+    rank INT NOT NULL COMMENT 'Current chart position (1-10)',
+    last_week INT COMMENT 'Previous week chart position (NULL if new entry)',
+    weeks_on_chart INT DEFAULT 1 COMMENT 'Number of weeks song has been on chart',
+    chart_date DATE NOT NULL COMMENT 'Date of this chart entry',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Record creation timestamp',
+    
+    FOREIGN KEY (song_id) REFERENCES Songs(song_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_song_chart (song_id, chart_date),
+    INDEX idx_rank (rank),
+    INDEX idx_chart_date (chart_date),
+    INDEX idx_song_id (song_id),
+    
+    CHECK (rank BETWEEN 1 AND 10),
+    CHECK (last_week IS NULL OR last_week BETWEEN 1 AND 100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Stores Billboard Hot 100 Top 10 chart positions and statistics';

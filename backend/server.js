@@ -57,6 +57,30 @@ app.get('/', (req, res) => {
   });
 });
 
+// Billboard Hot 100 Top 10 endpoint
+app.get('/api/billboard/top10', async (req, res) => {
+  try {
+    // Static Billboard Hot 100 Top 10 (you can update this weekly or fetch from an API)
+    const billboardTop10 = [
+      { rank: 1, title: "Cruel Summer", artist: "Taylor Swift", duration: "2:58", chart_position: "↔️" },
+      { rank: 2, title: "Paint The Town Red", artist: "Doja Cat", duration: "3:50", chart_position: "↑ 1" },
+      { rank: 3, title: "Snooze", artist: "SZA", duration: "3:22", chart_position: "↓ 1" },
+      { rank: 4, title: "I Remember Everything", artist: "Zach Bryan ft. Kacey Musgraves", duration: "3:38", chart_position: "↔️" },
+      { rank: 5, title: "Fukumean", artist: "Gunna", duration: "2:04", chart_position: "↑ 2" },
+      { rank: 6, title: "Strangers", artist: "Kenya Grace", duration: "2:47", chart_position: "NEW" },
+      { rank: 7, title: "vampire", artist: "Olivia Rodrigo", duration: "3:39", chart_position: "↓ 2" },
+      { rank: 8, title: "Lovin On Me", artist: "Jack Harlow", duration: "2:38", chart_position: "↑ 15" },
+      { rank: 9, title: "greedy", artist: "Tate McRae", duration: "2:11", chart_position: "↑ 3" },
+      { rank: 10, title: "Last Night", artist: "Morgan Wallen", duration: "2:51", chart_position: "↓ 1" }
+    ];
+
+    res.json({ success: true, songs: billboardTop10 });
+  } catch (error) {
+    console.error('Failed to fetch Billboard Top 10:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });

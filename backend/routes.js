@@ -65,7 +65,7 @@ router.get('/songs', async (req, res) => {
         s.title,
         a.artist_id,
         a.name AS artist,
-        s.duration,
+        CONCAT(FLOOR(s.duration / 60), ':', LPAD(s.duration % 60, 2, '0')) AS duration,
         s.genre,
         s.release_year,
         s.created_at
@@ -94,7 +94,7 @@ router.get('/songs/:id', async (req, res) => {
         s.title,
         a.artist_id,
         a.name AS artist,
-        s.duration,
+        CONCAT(FLOOR(s.duration / 60), ':', LPAD(s.duration % 60, 2, '0')) AS duration,
         s.genre,
         s.release_year
       FROM Songs s
@@ -125,7 +125,7 @@ router.get('/songs/by-artist/:artistId', async (req, res) => {
         s.song_id,
         s.title,
         a.name AS artist,
-        s.duration,
+        CONCAT(FLOOR(s.duration / 60), ':', LPAD(s.duration % 60, 2, '0')) AS duration,
         s.genre,
         s.release_year
       FROM Songs s
@@ -201,6 +201,110 @@ router.post('/auth/login', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/auth/signup
+ * Description: Create new user account
+ * Body: { email, password, username }
+ */
+router.post('/auth/signup', async (req, res) => {
+  try {
+    const { email, password, username } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+    
+    // Check if email already exists
+    const checkQuery = 'SELECT user_id FROM Users WHERE email = ?';
+    const [existing] = await pool.query(checkQuery, [email]);
+    
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+    
+    // Create username from email if not provided
+    const finalUsername = username || email.split('@')[0];
+    
+    // Insert new user (Note: In production, hash password with bcrypt)
+    const insertQuery = 'INSERT INTO Users (email, username, password_hash) VALUES (?, ?, ?)';
+    const [result] = await pool.query(insertQuery, [email, finalUsername, password]);
+    
+    const newUserId = result.insertId;
+    console.log('✅ Backend: New user created with ID:', newUserId);
+    
+    // Create default playlists for new user
+    const defaultPlaylists = [
+      { name: 'Daily Mix', description: 'My favorite tracks for daily listening', color: '#a855f7', songs: [1, 3, 6, 7, 12] },
+      { name: 'Focus Flow', description: 'Ambient music for concentration and work', color: '#10b981', songs: [3, 8, 11, 13, 5] },
+      { name: 'Roadtrip 25', description: 'High-energy tracks for road trips', color: '#f59e0b', songs: [2, 10, 4, 6, 12, 9] }
+    ];
+    
+    for (const playlist of defaultPlaylists) {
+      // Check if playlist_id = 1 is available
+      const checkOneQuery = 'SELECT playlist_id FROM Playlists WHERE playlist_id = 1';
+      const [checkOne] = await pool.query(checkOneQuery);
+      
+      let playlistId;
+      
+      if (checkOne.length === 0) {
+        playlistId = 1;
+      } else {
+        const findGapQuery = `
+          SELECT t1.playlist_id + 1 AS next_id
+          FROM Playlists t1
+          WHERE NOT EXISTS (
+            SELECT 1 FROM Playlists t2 
+            WHERE t2.playlist_id = t1.playlist_id + 1
+          )
+          ORDER BY t1.playlist_id
+          LIMIT 1
+        `;
+        
+        const [gapResult] = await pool.query(findGapQuery);
+        
+        if (gapResult.length > 0) {
+          playlistId = gapResult[0].next_id;
+        } else {
+          const maxIdQuery = 'SELECT MAX(playlist_id) + 1 AS next_id FROM Playlists';
+          const [maxResult] = await pool.query(maxIdQuery);
+          playlistId = maxResult[0].next_id || 1;
+        }
+      }
+      
+      // Create playlist
+      const createPlaylistQuery = `
+        INSERT INTO Playlists (playlist_id, user_id, name, description, color_hex)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      await pool.query(createPlaylistQuery, [playlistId, newUserId, playlist.name, playlist.description, playlist.color]);
+      
+      // Add songs to playlist
+      for (let i = 0; i < playlist.songs.length; i++) {
+        const addSongQuery = `
+          INSERT INTO Playlist_Songs (playlist_id, song_id, track_order)
+          VALUES (?, ?, ?)
+        `;
+        await pool.query(addSongQuery, [playlistId, playlist.songs[i], i + 1]);
+      }
+      
+      console.log(`✅ Backend: Created default playlist "${playlist.name}" (ID: ${playlistId}) for user ${newUserId}`);
+    }
+    
+    res.status(201).json({
+      success: true,
+      user: {
+        user_id: newUserId,
+        email: email,
+        username: finalUsername
+      },
+      message: 'Account created successfully with default playlists'
+    });
+  } catch (error) {
+    console.error('Error during signup:', error);
+    res.status(500).json({ error: 'Signup failed' });
+  }
+});
+
 // ============================================================================
 // PLAYLISTS ENDPOINTS
 // ============================================================================
@@ -212,6 +316,8 @@ router.post('/auth/login', async (req, res) => {
 router.get('/playlists/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+    console.log('📋 Backend: Fetching playlists for user', userId);
+    
     const query = `
       SELECT 
         p.playlist_id,
@@ -219,15 +325,17 @@ router.get('/playlists/:userId', async (req, res) => {
         p.name,
         p.description,
         p.color_hex,
-        COUNT(ps.song_id) AS count,
+        COUNT(ps.song_id) AS song_count,
         p.created_at
       FROM Playlists p
       LEFT JOIN Playlist_Songs ps ON p.playlist_id = ps.playlist_id
       WHERE p.user_id = ?
-      GROUP BY p.playlist_id
+      GROUP BY p.playlist_id, p.user_id, p.name, p.description, p.color_hex, p.created_at
       ORDER BY p.created_at DESC
     `;
     const [playlists] = await pool.query(query, [userId]);
+    console.log('📋 Backend: Found', playlists.length, 'playlists');
+    console.log('📋 Backend: Playlists:', playlists);
     res.json(playlists);
   } catch (error) {
     console.error('Error fetching playlists:', error);
@@ -249,7 +357,7 @@ router.get('/playlists/:playlistId/songs', async (req, res) => {
         s.title,
         a.artist_id,
         a.name AS artist,
-        s.duration,
+        CONCAT(FLOOR(s.duration / 60), ':', LPAD(s.duration % 60, 2, '0')) AS duration,
         s.genre,
         ps.track_order,
         ps.added_at
@@ -269,7 +377,7 @@ router.get('/playlists/:playlistId/songs', async (req, res) => {
 
 /**
  * POST /api/playlists
- * Description: Create new playlist
+ * Description: Create new playlist (reuses deleted IDs per user)
  * Body: { user_id, name, description, color_hex }
  */
 router.post('/playlists', async (req, res) => {
@@ -280,15 +388,54 @@ router.post('/playlists', async (req, res) => {
       return res.status(400).json({ error: 'user_id and name required' });
     }
     
+    // Check if playlist_id = 1 is available
+    const checkOneQuery = 'SELECT playlist_id FROM Playlists WHERE playlist_id = 1';
+    const [checkOne] = await pool.query(checkOneQuery);
+    
+    let nextId;
+    
+    if (checkOne.length === 0) {
+      // ID 1 is available, use it
+      nextId = 1;
+    } else {
+      // Find the first gap in the sequence
+      const findGapQuery = `
+        SELECT t1.playlist_id + 1 AS next_id
+        FROM Playlists t1
+        WHERE NOT EXISTS (
+          SELECT 1 FROM Playlists t2 
+          WHERE t2.playlist_id = t1.playlist_id + 1
+        )
+        ORDER BY t1.playlist_id
+        LIMIT 1
+      `;
+      
+      const [gapResult] = await pool.query(findGapQuery);
+      
+      if (gapResult.length > 0) {
+        nextId = gapResult[0].next_id;
+      } else {
+        // No gaps, get max + 1
+        const maxIdQuery = 'SELECT MAX(playlist_id) + 1 AS next_id FROM Playlists';
+        const [maxResult] = await pool.query(maxIdQuery);
+        nextId = maxResult[0].next_id || 1;
+      }
+    }
+    
+    console.log('📝 Backend: Creating playlist with ID:', nextId, 'for user', user_id);
+    
+    // Insert playlist with specific ID
     const query = `
-      INSERT INTO Playlists (user_id, name, description, color_hex)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO Playlists (playlist_id, user_id, name, description, color_hex)
+      VALUES (?, ?, ?, ?, ?)
     `;
-    const [result] = await pool.query(query, [user_id, name, description || '', color_hex || '#a855f7']);
+    await pool.query(query, [nextId, user_id, name, description || '', color_hex || '#a855f7']);
+    
+    console.log('✅ Backend: Playlist created successfully with ID:', nextId);
     
     res.status(201).json({
       success: true,
-      playlist_id: result.insertId,
+      playlist_id: nextId,
       message: 'Playlist created successfully'
     });
   } catch (error) {
@@ -328,6 +475,38 @@ router.post('/playlists/:playlistId/songs', async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/playlists/:playlistId
+ * Description: Delete a playlist and all its associated songs
+ */
+router.delete('/playlists/:playlistId', async (req, res) => {
+  try {
+    const { playlistId } = req.params;
+    console.log('🗑️ Backend: Deleting playlist', playlistId);
+    
+    // First delete all songs from the playlist (due to foreign key constraint)
+    const deleteSongsQuery = 'DELETE FROM Playlist_Songs WHERE playlist_id = ?';
+    await pool.query(deleteSongsQuery, [playlistId]);
+    
+    // Then delete the playlist itself
+    const deletePlaylistQuery = 'DELETE FROM Playlists WHERE playlist_id = ?';
+    const [result] = await pool.query(deletePlaylistQuery, [playlistId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Playlist not found' });
+    }
+    
+    console.log('✅ Backend: Playlist deleted successfully');
+    res.json({
+      success: true,
+      message: 'Playlist deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting playlist:', error);
+    res.status(500).json({ error: 'Failed to delete playlist' });
+  }
+});
+
 // ============================================================================
 // SEARCH ENDPOINT
 // ============================================================================
@@ -354,7 +533,7 @@ router.get('/search', async (req, res) => {
         s.title,
         a.artist_id,
         a.name AS artist,
-        s.duration,
+        CONCAT(FLOOR(s.duration / 60), ':', LPAD(s.duration % 60, 2, '0')) AS duration,
         s.genre
       FROM Songs s
       JOIN Artists a ON s.artist_id = a.artist_id
